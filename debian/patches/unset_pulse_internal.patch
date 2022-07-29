@@ -1,22 +1,7 @@
-Index: alsa-utils-1.2.6-1ubuntu1/alsamixer/cli.c
+Index: alsa-utils/amixer/amixer.c
 ===================================================================
---- alsa-utils-1.2.6-1ubuntu1.orig/alsamixer/cli.c
-+++ alsa-utils-1.2.6-1ubuntu1/alsamixer/cli.c
-@@ -150,6 +150,10 @@ int main(int argc, char *argv[])
- 	textdomain(PACKAGE);
- #endif
- 
-+	/* We don't want to control a pulseaudio mixer, since that can be done from
-+	 * pulseaudio itself. */
-+	setenv("PULSE_INTERNAL", "0", 1);
-+
- 	parse_options(argc, argv);
- 
- 	if (config_file == CONFIG_DEFAULT)
-Index: alsa-utils-1.2.6-1ubuntu1/amixer/amixer.c
-===================================================================
---- alsa-utils-1.2.6-1ubuntu1.orig/amixer/amixer.c
-+++ alsa-utils-1.2.6-1ubuntu1/amixer/amixer.c
+--- alsa-utils.orig/amixer/amixer.c
++++ alsa-utils/amixer/amixer.c
 @@ -1777,6 +1777,11 @@ int main(int argc, char *argv[])
  {
  	int badopt, retval, level = 0;
@@ -29,10 +14,10 @@ Index: alsa-utils-1.2.6-1ubuntu1/amixer/amixer.c
  	static const struct option long_option[] =
  	{
  		{"help", 0, NULL, 'h'},
-Index: alsa-utils-1.2.6-1ubuntu1/iecset/iecset.c
+Index: alsa-utils/iecset/iecset.c
 ===================================================================
---- alsa-utils-1.2.6-1ubuntu1.orig/iecset/iecset.c
-+++ alsa-utils-1.2.6-1ubuntu1/iecset/iecset.c
+--- alsa-utils.orig/iecset/iecset.c
++++ alsa-utils/iecset/iecset.c
 @@ -324,6 +324,10 @@ int main(int argc, char **argv)
  	char tmpname[32];
  	int parms[IDX_LAST];
@@ -44,11 +29,11 @@ Index: alsa-utils-1.2.6-1ubuntu1/iecset/iecset.c
  	for (i = 0; i < IDX_LAST; i++)
  		parms[i] = -1; /* not set */
  
-Index: alsa-utils-1.2.6-1ubuntu1/alsactl/alsactl.c
+Index: alsa-utils/alsactl/alsactl.c
 ===================================================================
---- alsa-utils-1.2.6-1ubuntu1.orig/alsactl/alsactl.c
-+++ alsa-utils-1.2.6-1ubuntu1/alsactl/alsactl.c
-@@ -227,6 +227,8 @@ static void do_nice(int use_nice, int sc
+--- alsa-utils.orig/alsactl/alsactl.c
++++ alsa-utils/alsactl/alsactl.c
+@@ -230,6 +230,8 @@ static void do_nice(int use_nice, int sc
  
  int main(int argc, char *argv[])
  {
@@ -57,3 +42,18 @@ Index: alsa-utils-1.2.6-1ubuntu1/alsactl/alsactl.c
  	static const char *const devfiles[] = {
  		"/dev/snd/controlC",
  		"/dev/snd/pcmC",
+Index: alsa-utils/alsamixer/cli.c
+===================================================================
+--- alsa-utils.orig/alsamixer/cli.c
++++ alsa-utils/alsamixer/cli.c
+@@ -150,6 +150,10 @@ int main(int argc, char *argv[])
+ 	textdomain(PACKAGE);
+ #endif
+ 
++	/* We don't want to control a pulseaudio mixer, since that can be done from
++	 * pulseaudio itself. */
++	setenv("PULSE_INTERNAL", "0", 1);
++
+ 	parse_options(argc, argv);
+ 
+ 	create_mixer_object(&selem_regopt);
