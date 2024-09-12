@@ -20,6 +20,7 @@
  *
  */
 
+#include "aconfig.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +34,7 @@
 #include <syslog.h>
 #include <signal.h>
 #include "alsaloop.h"
+#include "os_compat.h"
 
 struct loopback_thread {
 	int threaded;
@@ -403,7 +405,7 @@ static int parse_config(int argc, char *argv[], snd_output_t *output,
 	snd_pcm_uframes_t arg_period_size = 0;
 	unsigned long arg_loop_time = ~0UL;
 	int arg_nblock = 0;
-	int arg_effect = 0;
+	// int arg_effect = 0;
 	int arg_resample = 0;
 #ifdef USE_SAMPLERATE
 	int arg_samplerate = SRC_SINC_FASTEST + 1;
@@ -491,7 +493,7 @@ static int parse_config(int argc, char *argv[], snd_output_t *output,
 			arg_nblock = 1;
 			break;
 		case 'e':
-			arg_effect = 1;
+			// arg_effect = 1;
 			break;
 		case 'n':
 			arg_resample = 1;
@@ -819,7 +821,7 @@ static void send_to_all(int sig)
 	}
 }
 
-static void signal_handler(int sig)
+static void signal_handler(int sig ATTRIBUTE_UNUSED)
 {
 	quit = 1;
 	send_to_all(SIGUSR2);

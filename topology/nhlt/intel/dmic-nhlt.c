@@ -4,11 +4,13 @@
 //
 // Author: Jaska Uimonen <jaska.uimonen@linux.intel.com>
 
+#include "aconfig.h"
 #include <stdint.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <alsa/global.h>
 #include <alsa/input.h>
 #include <alsa/output.h>
 #include <alsa/conf.h>
@@ -154,7 +156,7 @@ static int set_vendor_mic_data(struct intel_nhlt_params *nhlt, snd_config_t *cfg
 				   horizontal_angle_end);
 }
 
-static int set_bytes_data(struct intel_nhlt_params *nhlt, snd_config_t *cfg)
+static int set_bytes_data(struct intel_nhlt_params *nhlt ATTRIBUTE_UNUSED, snd_config_t *cfg)
 {
 	snd_config_iterator_t i, next;
 	snd_config_t *n;
@@ -251,7 +253,7 @@ int nhlt_dmic_get_ep(struct intel_nhlt_params *nhlt, struct endpoint_descriptor 
 	ep.subsystem_id = 0;
 	ep.device_type = 0;
 	ep.direction = NHLT_ENDPOINT_DIRECTION_CAPTURE;
-	ep.virtualbus_id = 0;
+	ep.virtualbus_id = index;
 
 	ret = dmic_get_params(nhlt, index, &sample_rate, &channel_count, &bits_per_sample,
 			      &array_type, &num_mics, &extension, &snr, &sensitivity);

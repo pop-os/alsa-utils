@@ -5,6 +5,7 @@
 // Author: Seppo Ingalsuo <seppo.ingalsuo@linux.intel.com>
 //         Jaska Uimonen <jaska.uimonen@linux.intel.com>
 
+#include "aconfig.h"
 #include <stdint.h>
 #include <errno.h>
 #include <stdio.h>
@@ -134,7 +135,7 @@ static void find_modes(struct intel_dmic_params *dmic, struct dmic_calc_decim_mo
 	int osr;
 	int mfir;
 	int mcic;
-	int ioclk_test;
+	unsigned int ioclk_test;
 	int osr_min = DMIC_MIN_OSR;
 	int j;
 	int i = 0;
@@ -146,7 +147,6 @@ static void find_modes(struct intel_dmic_params *dmic, struct dmic_calc_decim_mo
 	 * num_of_modes as zero.
 	 */
 	if (fs == 0) {
-		fprintf(stderr, "find_modes(): fs not set\n");
 		return;
 	}
 
@@ -159,28 +159,33 @@ static void find_modes(struct intel_dmic_params *dmic, struct dmic_calc_decim_mo
 	/* Check for sane pdm clock, min 100 kHz, max ioclk/2 */
 	if (dmic->dmic_prm[di].pdmclk_max < DMIC_HW_PDM_CLK_MIN ||
 	    dmic->dmic_prm[di].pdmclk_max > dmic->dmic_prm[di].io_clk / 2) {
-		fprintf(stderr, "find_modes():  pdm clock max not in range\n");
+		fprintf(stderr, "%s: pdm clock max %d not in range\n", __func__,
+			dmic->dmic_prm[di].pdmclk_max);
 		return;
 	}
 	if (dmic->dmic_prm[di].pdmclk_min < DMIC_HW_PDM_CLK_MIN ||
 	    dmic->dmic_prm[di].pdmclk_min > dmic->dmic_prm[di].pdmclk_max) {
-		fprintf(stderr, "find_modes():  pdm clock min not in range\n");
+		fprintf(stderr, "%s: pdm clock min %d not in range\n", __func__,
+			dmic->dmic_prm[di].pdmclk_min);
 		return;
 	}
 
 	/* Check for sane duty cycle */
 	if (dmic->dmic_prm[di].duty_min > dmic->dmic_prm[di].duty_max) {
-		fprintf(stderr, "find_modes(): duty cycle min > max\n");
+		fprintf(stderr, "%s: duty cycle min > max: %d > %d\n", __func__,
+			dmic->dmic_prm[di].duty_min, dmic->dmic_prm[di].duty_max);
 		return;
 	}
 	if (dmic->dmic_prm[di].duty_min < DMIC_HW_DUTY_MIN ||
 	    dmic->dmic_prm[di].duty_min > DMIC_HW_DUTY_MAX) {
-		fprintf(stderr, "find_modes():  pdm clock min not in range\n");
+		fprintf(stderr, "%s: pdm clock min %d not in range\n", __func__,
+			dmic->dmic_prm[di].duty_min);
 		return;
 	}
 	if (dmic->dmic_prm[di].duty_max < DMIC_HW_DUTY_MIN ||
 	    dmic->dmic_prm[di].duty_max > DMIC_HW_DUTY_MAX) {
-		fprintf(stderr, "find_modes(): pdm clock max not in range\n");
+		fprintf(stderr, "%s: pdm clock max %d not in range\n", __func__,
+			dmic->dmic_prm[di].duty_max);
 		return;
 	}
 
@@ -328,7 +333,7 @@ static struct pdm_decim *get_fir(struct intel_dmic_params *dmic,
 	 * sets HW overrun status and overwrite of other register.
 	 */
 	fir_max_length = MIN(DMIC_HW_FIR_LENGTH_MAX,
-			     dmic->dmic_prm[di].io_clk / fs / 2 -
+			     (int)dmic->dmic_prm[di].io_clk / fs / 2 -
 			     DMIC_FIR_PIPELINE_OVERHEAD);
 
 	/* Loop until NULL */
@@ -428,7 +433,7 @@ static int select_mode(struct intel_dmic_params *dmic, struct dmic_calc_configur
 	 * candidates should be sufficient.
 	 */
 	if (modes->num_of_modes == 0) {
-		fprintf(stderr, "select_mode(): no modes available\n");
+		fprintf(stderr, "%s: no modes available\n", __func__);
 		return -EINVAL;
 	}
 
@@ -451,7 +456,7 @@ static int select_mode(struct intel_dmic_params *dmic, struct dmic_calc_configur
 	}
 
 	if (!found) {
-		fprintf(stderr, "select_mode(): No filter for decimation found\n");
+		fprintf(stderr, "%s: No filter for decimation found\n", __func__);
 		return -EINVAL;
 	}
 	n = idx[found - 1]; /* Option with highest clock divisor and lowest mic clock rate */
@@ -468,8 +473,8 @@ static int select_mode(struct intel_dmic_params *dmic, struct dmic_calc_configur
 	if (cfg->mfir_a > 0) {
 		cfg->fir_a = get_fir(dmic, cfg, cfg->mfir_a);
 		if (!cfg->fir_a) {
-			fprintf(stderr, "select_mode(): can't find FIR coefficients, mfir_a = %d\n",
-				cfg->mfir_a);
+			fprintf(stderr, "%s: can't find FIR coefficients, mfir_a = %d\n",
+				__func__, cfg->mfir_a);
 			return -EINVAL;
 		}
 	}
@@ -477,8 +482,8 @@ static int select_mode(struct intel_dmic_params *dmic, struct dmic_calc_configur
 	if (cfg->mfir_b > 0) {
 		cfg->fir_b = get_fir(dmic, cfg, cfg->mfir_b);
 		if (!cfg->fir_b) {
-			fprintf(stderr, "select_mode(): can't find FIR coefficients, mfir_b = %d\n",
-				cfg->mfir_b);
+			fprintf(stderr, "%s: can't find FIR coefficients, mfir_b = %d\n",
+				__func__, cfg->mfir_b);
 			return -EINVAL;
 		}
 	}
@@ -490,7 +495,7 @@ static int select_mode(struct intel_dmic_params *dmic, struct dmic_calc_configur
 	g_cic = mcic * mcic * mcic * mcic * mcic;
 	if (g_cic < 0) {
 		/* Erroneous decimation factor and CIC gain */
-		fprintf(stderr, "select_mode(): erroneous decimation factor and CIC gain\n");
+		fprintf(stderr, "%s: erroneous decimation factor and CIC gain\n", __func__);
 		return -EINVAL;
 	}
 
@@ -515,7 +520,7 @@ static int select_mode(struct intel_dmic_params *dmic, struct dmic_calc_configur
 				     cfg->fir_a->length, gain_to_fir);
 		if (ret < 0) {
 			/* Invalid coefficient set found, should not happen. */
-			fprintf(stderr, "select_mode(): invalid coefficient set found\n");
+			fprintf(stderr, "%s: invalid coefficient set found\n", __func__);
 			return -EINVAL;
 		}
 	} else {
@@ -531,7 +536,7 @@ static int select_mode(struct intel_dmic_params *dmic, struct dmic_calc_configur
 				     cfg->fir_b->length, gain_to_fir);
 		if (ret < 0) {
 			/* Invalid coefficient set found, should not happen. */
-			fprintf(stderr, "select_mode(): invalid coefficient set found\n");
+			fprintf(stderr, "%s: invalid coefficient set found\n", __func__);
 			return -EINVAL;
 		}
 	} else {
@@ -662,7 +667,7 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 	int soft_reset;
 	int cic_mute;
 	int fir_mute;
-	int i;
+	unsigned int i;
 	int j;
 	int ret;
 	int mic;
@@ -781,7 +786,10 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 		}
 	}
 
-	if (dmic->dmic_prm[di].driver_version == 2 || dmic->dmic_prm[di].driver_version == 3) {
+	if (dmic->dmic_prm[di].driver_version >= 2) {
+		if (dmic->dmic_prm[di].driver_version >= 4)
+			bfth = 0;
+
 		if (di == 0) {
 			ipm_helper2(dmic, source, &ipm);
 			val = OUTCONTROL0_TIE(0) |
@@ -819,7 +827,7 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 
 	ret = stereo_helper(dmic, stereo, swap);
 	if (ret < 0) {
-		fprintf(stderr, "configure_registers(): enable conflict\n");
+		fprintf(stderr, "%s: enable conflict\n", __func__);
 		return ret;
 	}
 
@@ -830,8 +838,11 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 			CIC_CONTROL_CIC_START_A(1) |
 			CIC_CONTROL_MIC_B_POLARITY(dmic->dmic_prm[di].pdm[i].polarity_mic_b) |
 			CIC_CONTROL_MIC_A_POLARITY(dmic->dmic_prm[di].pdm[i].polarity_mic_a) |
-			CIC_CONTROL_MIC_MUTE(cic_mute) |
-			CIC_CONTROL_STEREO_MODE(stereo[i]);
+			CIC_CONTROL_MIC_MUTE(cic_mute);
+
+		if (dmic->dmic_prm[di].driver_version == 1)
+			val |= CIC_CONTROL_STEREO_MODE(stereo[i]);
+
 		dmic->dmic_blob_pdm[i].cic_control = val;
 
 		val = CIC_CONFIG_CIC_SHIFT(cfg->cic_shift + 8) |
@@ -853,8 +864,12 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 			MIC_CONTROL_PDM_EN_A(1);
 		dmic->dmic_blob_pdm[i].mic_control = val;
 
-		/* if cfg->mfir_a */
-		if (di == 0) {
+		/*
+		 * Here we have to check the both FIRs if they are
+		 * configured as the later configured DAI may have changed
+		 * the configuration of the DAI configured earlier.
+		 */
+		if (cfg->mfir_a) {
 			/* FIR A */
 			fir_decim = MAX(cfg->mfir_a - 1, 0);
 			fir_length = MAX(cfg->fir_a_length - 1, 0);
@@ -863,24 +878,24 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 				FIR_CONTROL_A_DCCOMP(dccomp) |
 				FIR_CONTROL_A_MUTE(fir_mute) |
 				FIR_CONTROL_A_STEREO(stereo[i]);
-			dmic->dmic_blob_fir[i][di].fir_control = val;
+			dmic->dmic_blob_fir[i][0].fir_control = val;
 
 			val = FIR_CONFIG_A_FIR_DECIMATION(fir_decim) |
 				FIR_CONFIG_A_FIR_SHIFT(cfg->fir_a_shift) |
 				FIR_CONFIG_A_FIR_LENGTH(fir_length);
-			dmic->dmic_blob_fir[i][di].fir_config = val;
+			dmic->dmic_blob_fir[i][0].fir_config = val;
 
 			val = DC_OFFSET_LEFT_A_DC_OFFS(DCCOMP_TC0);
-			dmic->dmic_blob_fir[i][di].dc_offset_left = val;
+			dmic->dmic_blob_fir[i][0].dc_offset_left = val;
 
 			val = DC_OFFSET_RIGHT_A_DC_OFFS(DCCOMP_TC0);
-			dmic->dmic_blob_fir[i][di].dc_offset_right = val;
+			dmic->dmic_blob_fir[i][0].dc_offset_right = val;
 
 			val = OUT_GAIN_LEFT_A_GAIN(0);
-			dmic->dmic_blob_fir[i][di].out_gain_left = val;
+			dmic->dmic_blob_fir[i][0].out_gain_left = val;
 
 			val = OUT_GAIN_RIGHT_A_GAIN(0);
-			dmic->dmic_blob_fir[i][di].out_gain_right = val;
+			dmic->dmic_blob_fir[i][0].out_gain_right = val;
 
 			/* Write coef RAM A with scaled coefficient in reverse order */
 			length = cfg->fir_a_length;
@@ -889,14 +904,15 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 							     cfg->fir_a_scale, 31,
 							     DMIC_FIR_SCALE_Q, DMIC_HW_FIR_COEF_Q);
 				cu = FIR_COEF_A(ci);
-				/* blob_pdm[i].fir_coeffs[di][j] = cu; */
-				dmic->dmic_fir_array.fir_coeffs[i][di][j] = cu;
+				/* blob_pdm[i].fir_coeffs[0][j] = cu; */
+				dmic->dmic_fir_array.fir_coeffs[i][0][j] = cu;
 			}
 			dmic->dmic_fir_array.fir_len[0] = length;
-			dmic->dmic_fir_array.fir_len[1] = 0;
+		} else {
+			dmic->dmic_fir_array.fir_len[0] = 0;
 		}
 
-		if (di == 1) {
+		if (cfg->mfir_b) {
 			/* FIR B */
 			fir_decim = MAX(cfg->mfir_b - 1, 0);
 			fir_length = MAX(cfg->fir_b_length - 1, 0);
@@ -905,23 +921,23 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 				FIR_CONTROL_B_DCCOMP(dccomp) |
 				FIR_CONTROL_B_MUTE(fir_mute) |
 				FIR_CONTROL_B_STEREO(stereo[i]);
-			dmic->dmic_blob_fir[i][di].fir_control = val;
+			dmic->dmic_blob_fir[i][1].fir_control = val;
 
 			val = FIR_CONFIG_B_FIR_DECIMATION(fir_decim) |
 				FIR_CONFIG_B_FIR_SHIFT(cfg->fir_b_shift) |
 				FIR_CONFIG_B_FIR_LENGTH(fir_length);
-			dmic->dmic_blob_fir[i][di].fir_config = val;
+			dmic->dmic_blob_fir[i][1].fir_config = val;
 			val = DC_OFFSET_LEFT_B_DC_OFFS(DCCOMP_TC0);
-			dmic->dmic_blob_fir[i][di].dc_offset_left = val;
+			dmic->dmic_blob_fir[i][1].dc_offset_left = val;
 
 			val = DC_OFFSET_RIGHT_B_DC_OFFS(DCCOMP_TC0);
-			dmic->dmic_blob_fir[i][di].dc_offset_right = val;
+			dmic->dmic_blob_fir[i][1].dc_offset_right = val;
 
 			val = OUT_GAIN_LEFT_B_GAIN(0);
-			dmic->dmic_blob_fir[i][di].out_gain_left = val;
+			dmic->dmic_blob_fir[i][1].out_gain_left = val;
 
 			val = OUT_GAIN_RIGHT_B_GAIN(0);
-			dmic->dmic_blob_fir[i][di].out_gain_right = val;
+			dmic->dmic_blob_fir[i][1].out_gain_right = val;
 
 			/* Write coef RAM B with scaled coefficient in reverse order */
 			length = cfg->fir_b_length;
@@ -930,10 +946,12 @@ static int configure_registers(struct intel_dmic_params *dmic, struct dmic_calc_
 							     cfg->fir_b_scale, 31,
 							     DMIC_FIR_SCALE_Q, DMIC_HW_FIR_COEF_Q);
 				cu = FIR_COEF_B(ci);
-				/* blob_pdm[i].fir_coeffs[di][j] = cu; */
-				dmic->dmic_fir_array.fir_coeffs[i][di][j] = cu;
+				/* blob_pdm[i].fir_coeffs[1][j] = cu; */
+				dmic->dmic_fir_array.fir_coeffs[i][1][j] = cu;
 			}
 			dmic->dmic_fir_array.fir_len[1] = length;
+		} else {
+			dmic->dmic_fir_array.fir_len[1] = 0;
 		}
 	}
 
@@ -965,13 +983,14 @@ int dmic_calculate(struct intel_nhlt_params *nhlt)
 	di = dmic->dmic_dai_index;
 
 	if (di >= DMIC_HW_FIFOS) {
-		fprintf(stderr, "dmic_set_config(): dai->index exceeds number of FIFOs\n");
+		fprintf(stderr, "%s: dai->index %d exceeds number of FIFOs\n", __func__, di);
 		ret = -EINVAL;
 		goto out;
 	}
 
 	if (dmic->dmic_prm[di].num_pdm_active > DMIC_HW_CONTROLLERS) {
-		fprintf(stderr, "dmic_set_config():controller count exceeds platform capability\n");
+		fprintf(stderr, "%s: controller count %d exceeds platform capability\n",
+			__func__, dmic->dmic_prm[di].num_pdm_active);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -983,7 +1002,8 @@ int dmic_calculate(struct intel_nhlt_params *nhlt)
 	case 32:
 		break;
 	default:
-		fprintf(stderr, "dmic_set_config(): fifo_bits EINVAL\n");
+		fprintf(stderr, "%s: Bad fifo_bits %d\n", __func__,
+			dmic->dmic_prm[di].fifo_bits);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -995,14 +1015,14 @@ int dmic_calculate(struct intel_nhlt_params *nhlt)
 	 */
 	find_modes(dmic, &modes_a, dmic->dmic_prm[0].fifo_fs);
 	if (modes_a.num_of_modes == 0 && dmic->dmic_prm[0].fifo_fs > 0) {
-		fprintf(stderr, "dmic_set_config(): No modes found for FIFO A\n");
+		fprintf(stderr, "%s: No modes found for FIFO A\n", __func__);
 		ret = -EINVAL;
 		goto out;
 	}
 
 	find_modes(dmic, &modes_b, dmic->dmic_prm[1].fifo_fs);
 	if (modes_b.num_of_modes == 0 && dmic->dmic_prm[1].fifo_fs > 0) {
-		fprintf(stderr, "dmic_set_config(): No modes found for FIFO B\n");
+		fprintf(stderr, "%s: No modes found for FIFO B\n", __func__);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -1010,7 +1030,7 @@ int dmic_calculate(struct intel_nhlt_params *nhlt)
 	match_modes(&modes_ab, &modes_a, &modes_b);
 	ret = select_mode(dmic, &cfg, &modes_ab);
 	if (ret < 0) {
-		fprintf(stderr, "dmic_set_config(): select_mode() failed\n");
+		fprintf(stderr, "%s: select_mode() failed %d\n", __func__, ret);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -1020,7 +1040,7 @@ int dmic_calculate(struct intel_nhlt_params *nhlt)
 	 */
 	ret = configure_registers(dmic, &cfg);
 	if (ret < 0) {
-		fprintf(stderr, "dmic_set_config(): cannot configure registers\n");
+		fprintf(stderr, "%s: cannot configure registers %d\n", __func__, ret);
 		ret = -EINVAL;
 		goto out;
 	}
@@ -1222,7 +1242,12 @@ int dmic_set_params(struct intel_nhlt_params *nhlt, int dai_index, int driver_ve
 		return -EINVAL;
 
 	if (dai_index >= DMIC_HW_FIFOS) {
-		fprintf(stderr, "set_dmic_data illegal dai index\n");
+		fprintf(stderr, "%s: illegal dai index %d \n", __func__, dai_index);
+		return -EINVAL;
+	}
+
+	if (driver_version < 1 || driver_version > 5) {
+		fprintf(stderr, "%s: illegal driver version %d\n", __func__, driver_version);
 		return -EINVAL;
 	}
 
@@ -1251,7 +1276,7 @@ int dmic_set_pdm_params(struct intel_nhlt_params *nhlt, int pdm_index, int enabl
 		return -EINVAL;
 
 	if (pdm_index >= DMIC_HW_CONTROLLERS) {
-		fprintf(stderr, "set_pdm_data illegal pdm_index\n");
+		fprintf(stderr, "%s: illegal pdm_index %d\n", __func__, pdm_index);
 		return -EINVAL;
 	}
 

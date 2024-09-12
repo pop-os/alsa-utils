@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
-AC_INIT(alsa-utils, 1.2.8)
+AC_INIT(alsa-utils, 1.2.12)
 AC_CONFIG_SRCDIR([aplay/aplay.c])
 AC_PREFIX_DEFAULT(/usr)
 AM_INIT_AUTOMAKE([subdir-objects])
@@ -21,11 +21,14 @@ AC_PROG_SED
 AC_DISABLE_STATIC
 AM_PROG_LIBTOOL
 PKG_PROG_PKG_CONFIG
-AM_PATH_ALSA(1.2.5)
+AM_PATH_ALSA(1.2.12)
 if test "x$enable_alsatest" = "xyes"; then
 AC_CHECK_FUNC([snd_ctl_elem_add_enumerated],
 	      , [AC_ERROR([No user enum control support in alsa-lib])])
 fi
+
+
+AC_CHECK_HEADERS([dlfcn.h malloc.h])
 
 dnl Check components
 AC_CHECK_HEADERS([alsa/pcm.h], [have_pcm="yes"], [have_pcm="no"],
@@ -44,13 +47,6 @@ AC_CHECK_HEADERS([samplerate.h], [have_samplerate="yes"], [have_samplerate="no"]
   [#include <samplerate.h>])
 
 AC_CHECK_LIB([asound], [snd_seq_client_info_get_card], [HAVE_SEQ_CLIENT_INFO_GET_CARD="yes"])
-if test "$HAVE_SEQ_CLIENT_INFO_GET_CARD" = "yes" ; then
-    AC_DEFINE([HAVE_SEQ_CLIENT_INFO_GET_CARD], 1, [alsa-lib supports snd_seq_client_info_get_card])
-fi
-AC_CHECK_LIB([asound], [snd_seq_client_info_get_pid], [HAVE_SEQ_CLIENT_INFO_GET_PID="yes"])
-if test "$HAVE_SEQ_CLIENT_INFO_GET_PID" = "yes" ; then
-    AC_DEFINE([HAVE_SEQ_CLIENT_INFO_GET_PID], 1, [alsa-lib supports snd_seq_client_info_get_pid])
-fi
 AC_CHECK_LIB([atopology], [snd_tplg_save], [have_topology="yes"], [have_topology="no"])
 
 #
@@ -74,7 +70,7 @@ AM_CONDITIONAL(HAVE_MIXER, test "$have_mixer" = "yes")
 AM_CONDITIONAL(HAVE_RAWMIDI, test "$have_rawmidi" = "yes")
 AM_CONDITIONAL(HAVE_SEQ, test "$have_seq" = "yes")
 AM_CONDITIONAL(HAVE_UCM, test "$have_ucm" = "yes")
-AM_CONDITIONAL(HAVE_TOPOLOGY, test "$have_topology" = "yes")
+AM_CONDITIONAL(HAVE_TOPOLOGY, test "$have_topology" = "yes" -a "$ac_cv_header_dlfcn_h" = "yes")
 AM_CONDITIONAL(HAVE_SAMPLERATE, test "$have_samplerate" = "yes")
 AM_CONDITIONAL(HAVE_FFADO, test "$have_ffado" = "yes")
 
@@ -185,6 +181,16 @@ AC_ARG_ENABLE(alsaloop,
        *) AC_MSG_ERROR(bad value ${enableval} for --enable-alsaloop) ;;
      esac],[alsaloop=true])
 AM_CONDITIONAL(ALSALOOP, test x$alsaloop = xtrue)
+
+dnl Disable nhlt
+AC_ARG_ENABLE(nhlt,
+     AS_HELP_STRING([--disable-nhlt], [Disable nhlt packaging]),
+     [case "${enableval}" in
+       yes) nhlt=true ;;
+       no)  nhlt=false ;;
+       *) AC_MSG_ERROR(bad value ${enableval} for --enable-nhlt) ;;
+     esac],[nhlt=true])
+AM_CONDITIONAL(NHLT, test x$nhlt = xtrue)
 
 xmlto_available=""
 AC_ARG_ENABLE(xmlto,
@@ -469,7 +475,8 @@ AC_OUTPUT(Makefile alsactl/Makefile alsactl/init/Makefile \
 	  bat/Makefile bat/tests/Makefile bat/tests/asound_state/Makefile \
 	  aplay/Makefile include/Makefile iecset/Makefile utils/Makefile \
 	  utils/alsa-utils.spec seq/Makefile seq/aconnect/Makefile \
-	  seq/aplaymidi/Makefile seq/aseqdump/Makefile seq/aseqnet/Makefile \
-	  speaker-test/Makefile speaker-test/samples/Makefile \
+	  seq/aplaymidi/Makefile seq/aplaymidi2/Makefile seq/aseqdump/Makefile seq/aseqnet/Makefile \
+	  seq/aseqsend/Makefile speaker-test/Makefile speaker-test/samples/Makefile \
 	  alsaloop/Makefile alsa-info/Makefile \
-	  axfer/Makefile axfer/test/Makefile)
+	  axfer/Makefile axfer/test/Makefile \
+	  nhlt/Makefile)

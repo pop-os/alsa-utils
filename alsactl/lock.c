@@ -31,12 +31,13 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include "alsactl.h"
+#include "os_compat.h"
 
 #define PATH_SIZE 512
 
 static int alarm_flag;
 
-static void signal_handler_alarm(int sig)
+static void signal_handler_alarm(int sig ATTRIBUTE_UNUSED)
 {
 	alarm_flag = 1;
 }

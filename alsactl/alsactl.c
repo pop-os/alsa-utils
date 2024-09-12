@@ -30,6 +30,7 @@
 #include <syslog.h>
 #include <sched.h>
 #include "alsactl.h"
+#include "os_compat.h"
 
 #ifndef SYS_ASOUND_DIR
 #define SYS_ASOUND_DIR "/var/lib/alsa"
@@ -241,7 +242,7 @@ int main(int argc, char *argv[])
 	char *cfgfile = SYS_ASOUNDRC;
 	char *initfile = DATADIR "/init/00main";
 	char *pidfile = SYS_PIDFILE;
-	char *cardname, ncardname[16];
+	char *cardname, ncardname[21];
 	char *cmd;
 	char *const *extra_args;
 	const char *const *tmp;
@@ -270,7 +271,7 @@ int main(int argc, char *argv[])
 		free(long_option);
 		exit(EXIT_FAILURE);
 	}
-	for (i = j = k = 0; i < ARRAY_SIZE(args); i++) {
+	for (i = j = k = 0; i < (int)ARRAY_SIZE(args); i++) {
 		a = &args[i];
 		if ((a->sarg & 0xff) == 0)
 			continue;

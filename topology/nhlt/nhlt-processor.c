@@ -4,12 +4,14 @@
 //
 // Author: Jaska Uimonen <jaska.uimonen@linux.intel.com>
 
+#include "aconfig.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <inttypes.h>
+#include <alsa/global.h>
 #include <alsa/input.h>
 #include <alsa/output.h>
 #include <alsa/conf.h>
@@ -86,7 +88,8 @@ static void debug_print_nhlt(struct nhlt *blob, struct endpoint_descriptor **eps
 	fprintf(stdout, "\n");
 }
 #else
-static void debug_print_nhlt(struct nhlt *blob, struct endpoint_descriptor **eps) {}
+static void debug_print_nhlt(struct nhlt *blob ATTRIBUTE_UNUSED,
+			     struct endpoint_descriptor **eps ATTRIBUTE_UNUSED) {}
 #endif
 
 static int print_as_hex_bytes(uint8_t *manifest_buffer, uint32_t manifest_size,
@@ -94,9 +97,9 @@ static int print_as_hex_bytes(uint8_t *manifest_buffer, uint32_t manifest_size,
 {
 	char *bytes_string_buffer;
 	char *dst;
-	int i;
+	unsigned int i;
 
-	bytes_string_buffer = calloc((manifest_size + nhlt_size) * ALSA_BYTE_CHARS,
+	bytes_string_buffer = calloc((manifest_size + nhlt_size) * ALSA_BYTE_CHARS + 1,
 				     sizeof(uint8_t));
 	if (!bytes_string_buffer)
 		return -ENOMEM;
@@ -219,7 +222,7 @@ static int manifest_create(snd_config_t *input, uint8_t **manifest_buffer, uint3
 	uint8_t *top_p;
 	uint8_t *dst;
 	int ret;
-	int i;
+	unsigned int i;
 
 	ret = snd_config_search(input, "SectionData", &data_section);
 	if (ret < 0)
@@ -280,7 +283,7 @@ static int nhlt_get_flat_buffer(struct nhlt *blob, struct endpoint_descriptor **
 	uint32_t nhlt_size;
 	uint8_t *ep_p;
 	uint8_t *dst;
-	int i, j;
+	unsigned int i, j;
 
 	/* get blob total size */
 	nhlt_size = sizeof(struct nhlt);
@@ -312,7 +315,8 @@ static int nhlt_get_flat_buffer(struct nhlt *blob, struct endpoint_descriptor **
 }
 
 /* called at the end of topology pre-processing, create flat buffer from variable size nhlt */
-static int nhlt_create(struct intel_nhlt_params *nhlt, snd_config_t *input, snd_config_t *output,
+static int nhlt_create(struct intel_nhlt_params *nhlt, snd_config_t *input,
+		       snd_config_t *output ATTRIBUTE_UNUSED,
 		       uint8_t **nhlt_buffer, uint32_t *nhlt_size)
 {
 	struct endpoint_descriptor *eps[MAX_ENDPOINT_COUNT];
@@ -327,9 +331,8 @@ static int nhlt_create(struct intel_nhlt_params *nhlt, snd_config_t *input, snd_
 		eps[i] = NULL;
 
 	/* we always have only 0 or 1 dmic ep */
-	if (nhlt_dmic_get_ep_count(nhlt)) {
-		/* the index is always 0 in dmic case */
-		ret = nhlt_dmic_get_ep(nhlt, &eps[eps_count], 0);
+	for (i = 0; i < nhlt_dmic_get_ep_count(nhlt); i++) {
+		ret = nhlt_dmic_get_ep(nhlt, &eps[eps_count], i);
 		if (ret < 0)
 			return -EINVAL;
 		eps_count++;
